@@ -147,9 +147,9 @@ sudo bash /root/ssh-autoshutdown.sh uninstall
    `ssh-autoshutdown.sh boot`，确保 PAM 钩子仍然存在（例如被系统升级覆盖后自动补回）。
    PAM 配置本身是持久化的，所以即使没有这个服务，重启后钩子也会生效；该服务只是自愈保险。
 
-4. 关于用户名：`pam_exec` 默认只导出 `PAM_RHOST / PAM_RUSER / PAM_SERVICE / PAM_TTY / PAM_TYPE`，
-   不一定有 `PAM_USER`。脚本会依次尝试 `PAM_USER` → `PAM_RUSER` → `/proc/self/loginuid`
-   反查用户名，所以白名单能正常匹配。
+4. 关于用户名：`pam_exec` 通常会把 `PAM_USER` 导出给命令；为兼容不同版本，
+   脚本会依次尝试 `PAM_USER` → `PAM_RUSER` → `/proc/self/loginuid` 反查用户名，
+   所以白名单能正常匹配。
 
 ## 配置项
 

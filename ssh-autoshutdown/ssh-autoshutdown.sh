@@ -101,8 +101,8 @@ USER_NAME=${PAM_USER:-}
 if [ -z "$USER_NAME" ]; then
   USER_NAME=${PAM_RUSER:-}
 fi
-# pam_exec 默认只导出 PAM_RHOST/PAM_RUSER/PAM_SERVICE/PAM_TTY/PAM_TYPE，
-# 不一定有 PAM_USER；此时用 audit loginuid 反查登录用户名。
+# pam_exec 多数版本会导出 PAM_USER；为兼容不同版本，缺失时用
+# PAM_RUSER / audit loginuid 反查登录用户名。
 if [ -z "$USER_NAME" ] && [ -r /proc/self/loginuid ]; then
   AUDIT_UID=$(/bin/cat /proc/self/loginuid 2>/dev/null || true)
   if [ -n "${AUDIT_UID:-}" ] && [ "$AUDIT_UID" != "4294967295" ]; then

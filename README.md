@@ -126,3 +126,15 @@ python app.py
 
 - 无数据库、无外部服务，适合家里、办公室、教室等可信局域网内快速互传。
 - 局域网 IP 由 `app.py` 自动探测；有多块网卡（如 VMware / VPN）时会列出多个候选地址。
+
+## 附加脚本：SSH 登录自动关机
+
+仓库里的 [`ssh-autoshutdown/`](ssh-autoshutdown/README.md) 附带一个 Ubuntu 单文件脚本：
+任何 SSH 登录成功后自动关机（默认延迟 1 分钟，可设立即），开机自动恢复钩子。
+
+```bash
+sudo bash ssh-autoshutdown.sh install
+```
+
+> ⚠️ 安装后任何 SSH 登录（含 scp / sftp / 自动化工具）都会触发关机，云服务器需要到控制台重新开机。
+> 仅建议用在自己的实验机 / 蜜罐上，详见 [ssh-autoshutdown/README.md](ssh-autoshutdown/README.md)。

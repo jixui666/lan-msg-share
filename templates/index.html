@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#070a12" />
+  <title>局域网快传 · 文件与文本共享</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <div class="aurora" aria-hidden="true">
+    <span class="orb orb-1"></span>
+    <span class="orb orb-2"></span>
+    <span class="orb orb-3"></span>
+  </div>
+
+  <main class="shell">
+    <header class="hero">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 0 1 15.5-6.2" />
+            <path d="M21 12a9 9 0 0 1-15.5 6.2" />
+            <path d="M18 3v4h-4" />
+            <path d="M6 21v-4h4" />
+            <path d="M12 8v8" />
+            <path d="M9 13l3 3 3-3" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>局域网快传</h1>
+          <p class="sub">同一 Wi‑Fi 下，文件与文本即时互传</p>
+        </div>
+      </div>
+      <div class="pill"><span class="dot"></span>局域网已连接</div>
+    </header>
+
+    <div class="top-grid">
+      <section class="card access">
+        <div class="card-head">
+          <h2>扫码连接</h2>
+          <span class="tag">手机 / 平板</span>
+        </div>
+        <div class="access-body">
+          <div class="qr-box">
+            <img src="{{ qr }}" alt="访问二维码" width="128" height="128" />
+          </div>
+          <div class="access-text">
+            <p class="label">手机访问地址</p>
+            <p class="url" id="lanUrl">{{ lan_url }}</p>
+            <button type="button" class="btn primary" id="copyBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="11" height="11" rx="2.5" />
+                <path d="M15 9V6.5A2.5 2.5 0 0 0 12.5 4H6.5A2.5 2.5 0 0 0 4 6.5v6A2.5 2.5 0 0 0 6.5 15H9" />
+              </svg>
+              <span>复制地址</span>
+            </button>
+            {% if extra_urls %}
+            <details class="alts">
+              <summary>打不开？试试其他地址</summary>
+              <ul class="alt-urls">
+                {% for u in extra_urls %}
+                <li>{{ u }}</li>
+                {% endfor %}
+              </ul>
+            </details>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+
+      <section class="card drop" id="dropZone">
+        <input type="file" id="fileInput" multiple hidden />
+        <div class="drop-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 16V5" />
+            <path d="M7.5 9.5 12 5l4.5 4.5" />
+            <path d="M20 15.5a3.5 3.5 0 0 0-1.2-6.8A5.5 5.5 0 0 0 8 7.2 4.5 4.5 0 0 0 4.5 16" />
+            <path d="M4 20h16" />
+          </svg>
+        </div>
+        <p class="drop-title">拖拽文件到这里</p>
+        <p class="hint">或点击下方按钮选择，电脑与手机均可上传</p>
+        <button type="button" class="btn primary" id="pickBtn">选择文件</button>
+        <div class="progress hidden" id="progress">
+          <div class="bar" id="bar"></div>
+        </div>
+        <p class="progress-text hidden" id="progressText"></p>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>共享粘贴板 <span class="count" id="clipCount">0</span></h2>
+        <button type="button" class="btn ghost small" id="clearClipsBtn">清空</button>
+      </div>
+      <div class="editor">
+        <textarea id="clipInput" rows="4" maxlength="50000" placeholder="粘贴或输入文本，Ctrl / ⌘ + Enter 快速发送…"></textarea>
+        <div class="editor-foot">
+          <span class="hint" id="clipStatus" role="status" aria-live="polite"></span>
+          <span class="char-count" id="charCount">0 字</span>
+          <button type="button" class="btn primary" id="sendClipBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21.5 2.5 10.8 13.2" />
+              <path d="M21.5 2.5 14.8 21l-4-8.5-8.3-4z" />
+            </svg>
+            <span>发送到局域网</span>
+          </button>
+        </div>
+      </div>
+      <ul id="clipList" class="clips"></ul>
+      <div class="clips-foot hidden" id="clipsFoot">
+        <button type="button" class="btn ghost small" id="toggleClipsBtn">展开全部</button>
+      </div>
+      <div class="empty hidden" id="clipEmpty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="5" y="4" width="14" height="16" rx="2.5" />
+          <path d="M9 9h6M9 13h6M9 17h3" />
+        </svg>
+        <span>还没有共享文本</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>已分享文件 <span class="count" id="fileCount">0</span></h2>
+        <button type="button" class="btn ghost small" id="refreshBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 11a8 8 0 1 0-2.3 6.2" />
+            <path d="M20 4v7h-7" />
+          </svg>
+          <span>刷新</span>
+        </button>
+      </div>
+      <ul id="fileList" class="files"></ul>
+      <div class="empty hidden" id="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3.5 8.5 12 4l8.5 4.5v7L12 20l-8.5-4.5z" />
+          <path d="M3.5 8.5 12 13l8.5-4.5M12 13v7" />
+        </svg>
+        <span>还没有文件，先上传一个吧</span>
+      </div>
+    </section>
+
+    <footer class="foot">文件只保存在这台电脑的 <code>uploads</code> 目录，不会上传到互联网</footer>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const fileInput = $("fileInput");
+    const dropZone = $("dropZone");
+    const pickBtn = $("pickBtn");
+    const copyBtn = $("copyBtn");
+    const refreshBtn = $("refreshBtn");
+    const fileList = $("fileList");
+    const empty = $("empty");
+    const progress = $("progress");
+    const bar = $("bar");
+    const progressText = $("progressText");
+    const fileCount = $("fileCount");
+    const clipCount = $("clipCount");
+    const toastEl = $("toast");
+    const clipInput = $("clipInput");
+    const sendClipBtn = $("sendClipBtn");
+    const clearClipsBtn = $("clearClipsBtn");
+    const clipList = $("clipList");
+    const clipEmpty = $("clipEmpty");
+    const clipStatus = $("clipStatus");
+    const charCount = $("charCount");
+    const clipsFoot = $("clipsFoot");
+    const toggleClipsBtn = $("toggleClipsBtn");
+    const CLIP_PREVIEW = 4;
+    let clipsExpanded = false;
+    let lastClips = [];
+    let lastClipSig = "";
+    let toastTimer;
+
+    const ICONS = {
+      download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 20h15"/></svg>',
+      trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9.5 7V4.8A.8.8 0 0 1 10.3 4h3.4a.8.8 0 0 1 .8.8V7"/><path d="M6.5 7l.9 12.2a1 1 0 0 0 1 .8h7.2a1 1 0 0 0 1-.8L17.5 7"/><path d="M10 11v5M14 11v5"/></svg>',
+      clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+      check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+    };
+
+    function toast(message, type = "ok") {
+      toastEl.textContent = message;
+      toastEl.className = "toast show" + (type === "error" ? " error" : "");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => (toastEl.className = "toast"), 2400);
+    }
+
+    function formatSize(n) {
+      if (n < 1024) return n + " B";
+      if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+      if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + " MB";
+      return (n / 1024 / 1024 / 1024).toFixed(2) + " GB";
+    }
+
+    const EXT_KIND = {
+      img: ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico", "heic", "avif", "tif", "tiff"],
+      video: ["mp4", "mov", "mkv", "avi", "webm", "flv", "m4v", "wmv"],
+      audio: ["mp3", "wav", "flac", "aac", "ogg", "m4a", "ape"],
+      doc: ["doc", "docx", "pdf", "txt", "md", "rtf", "ppt", "pptx", "xls", "xlsx", "csv", "epub"],
+      zip: ["zip", "rar", "7z", "tar", "gz", "bz2", "xz"],
+      code: ["js", "ts", "html", "css", "json", "py", "java", "c", "cpp", "go", "rs", "sh", "yml", "yaml", "xml", "sql"],
+    };
+
+    function extOf(name) {
+      const i = name.lastIndexOf(".");
+      return i > 0 ? name.slice(i + 1).toLowerCase() : "";
+    }
+
+    function fileKind(name) {
+      const ext = extOf(name);
+      for (const [kind, list] of Object.entries(EXT_KIND)) {
+        if (list.includes(ext)) return kind;
+      }
+      return "file";
+    }
+
+    function extLabel(name) {
+      const ext = extOf(name);
+      return ext ? ext.slice(0, 4).toUpperCase() : "FILE";
+    }
+
+    async function loadFiles() {
+      try {
+        const res = await fetch("/api/files");
+        const files = await res.json();
+        fileList.innerHTML = "";
+        fileCount.textContent = files.length;
+        empty.classList.toggle("hidden", files.length > 0);
+        for (const f of files) {
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <span class="file-icon kind-${fileKind(f.name)}">${escapeHtml(extLabel(f.name))}</span>
+            <div class="file-meta">
+              <strong title="${escapeAttr(f.name)}">${escapeHtml(f.name)}</strong>
+              <span>${formatSize(f.size)} · ${escapeHtml(f.mtime)}</span>
+            </div>
+            <div class="row-actions">
+              <a class="btn icon-btn" href="/download/${encodeURIComponent(f.name)}" title="下载 ${escapeAttr(f.name)}" aria-label="下载">${ICONS.download}</a>
+              <button type="button" class="btn icon-btn danger" title="删除" aria-label="删除" data-name="${escapeAttr(f.name)}">${ICONS.trash}</button>
+            </div>
+          `;
+          li.querySelector(".danger").addEventListener("click", () => removeFile(f.name));
+          fileList.appendChild(li);
+        }
+        requestAnimationFrame(() => {
+          fileList.classList.toggle(
+            "scrollable",
+            fileList.scrollHeight > fileList.clientHeight + 2
+          );
+        });
+      } catch {
+        toast("文件列表加载失败", "error");
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    function escapeAttr(s) {
+      return escapeHtml(s);
+    }
+
+    async function removeFile(name) {
+      if (!confirm("删除 " + name + "？")) return;
+      try {
+        await fetch("/api/files/" + encodeURIComponent(name), { method: "DELETE" });
+        toast("已删除");
+        loadFiles();
+      } catch {
+        toast("删除失败", "error");
+      }
+    }
+
+    function uploadFiles(files) {
+      if (!files || !files.length) return;
+      const data = new FormData();
+      for (const f of files) data.append("files", f);
+      progress.classList.remove("hidden");
+      progressText.classList.remove("hidden");
+      bar.style.width = "0%";
+      progressText.textContent = "准备上传…";
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/upload");
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          bar.style.width = pct + "%";
+          progressText.textContent = `上传中 ${pct}%`;
+        }
+      };
+      xhr.onload = () => {
+        progress.classList.add("hidden");
+        progressText.classList.add("hidden");
+        if (xhr.status >= 200 && xhr.status < 300) {
+          toast(`上传完成 · ${files.length} 个文件`);
+        } else {
+          toast("上传失败，请稍后重试", "error");
+        }
+        loadFiles();
+      };
+      xhr.onerror = () => {
+        progress.classList.add("hidden");
+        progressText.classList.add("hidden");
+        toast("上传失败，请确认电脑防火墙允许访问", "error");
+      };
+      xhr.send(data);
+    }
+
+    pickBtn.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", () => {
+      uploadFiles(fileInput.files);
+      fileInput.value = "";
+    });
+
+    let dragDepth = 0;
+    window.addEventListener("dragenter", (e) => {
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes("Files")) {
+        dragDepth += 1;
+        dropZone.classList.add("over");
+      }
+    });
+    window.addEventListener("dragleave", () => {
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (!dragDepth) dropZone.classList.remove("over");
+    });
+    window.addEventListener("dragover", (e) => {
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes("Files")) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      }
+    });
+    window.addEventListener("drop", (e) => {
+      if (!e.dataTransfer) return;
+      e.preventDefault();
+      dragDepth = 0;
+      dropZone.classList.remove("over");
+      uploadFiles(e.dataTransfer.files);
+    });
+
+    copyBtn.addEventListener("click", async () => {
+      const url = $("lanUrl").textContent.trim();
+      const label = copyBtn.querySelector("span");
+      try {
+        await navigator.clipboard.writeText(url);
+        copyBtn.classList.add("copied");
+        label.textContent = "已复制";
+        toast("访问地址已复制");
+        setTimeout(() => {
+          copyBtn.classList.remove("copied");
+          label.textContent = "复制地址";
+        }, 1600);
+      } catch {
+        prompt("手动复制访问地址：", url);
+      }
+    });
+
+    async function loadClips(force) {
+      try {
+        const res = await fetch("/api/clips");
+        const clips = await res.json();
+        const sig = clips.map((c) => c.id).join(",");
+        if (!force && sig === lastClipSig) return;
+        lastClipSig = sig;
+        lastClips = clips;
+        clipList.innerHTML = "";
+        clipCount.textContent = clips.length;
+        clipEmpty.classList.toggle("hidden", clips.length > 0);
+        clipsFoot.classList.toggle("hidden", clips.length <= CLIP_PREVIEW);
+        clips.forEach((c, index) => {
+          const li = document.createElement("li");
+          if (!clipsExpanded && index >= CLIP_PREVIEW) li.classList.add("clip-hidden");
+          li.innerHTML = `
+            <pre class="clip-text">${escapeHtml(c.text)}</pre>
+            <div class="clip-meta">
+              <span class="clip-time">${ICONS.clock}${escapeHtml(c.time || "")}</span>
+              <div class="row-actions">
+                <button type="button" class="btn ghost small copy-clip">复制</button>
+                <button type="button" class="btn ghost small danger del-clip">删除</button>
+              </div>
+            </div>
+          `;
+          const copyEl = li.querySelector(".copy-clip");
+          copyEl.addEventListener("click", async () => {
+            try {
+              await navigator.clipboard.writeText(c.text);
+              copyEl.textContent = "已复制";
+              setTimeout(() => (copyEl.textContent = "复制"), 1500);
+            } catch {
+              clipInput.value = c.text;
+              clipInput.focus();
+              clipInput.select();
+              toast("已填入上方，可手动复制");
+            }
+          });
+          li.querySelector(".del-clip").addEventListener("click", async () => {
+            await fetch("/api/clips/" + encodeURIComponent(c.id), { method: "DELETE" });
+            loadClips(true);
+          });
+          clipList.appendChild(li);
+        });
+        updateClipToggle();
+      } catch {
+        /* 轮询失败时忽略 */
+      }
+    }
+
+    function updateClipToggle() {
+      if (!lastClips.length) return;
+      toggleClipsBtn.textContent = clipsExpanded
+        ? "收起"
+        : `展开全部 ${lastClips.length} 条`;
+    }
+
+    toggleClipsBtn.addEventListener("click", () => {
+      clipsExpanded = !clipsExpanded;
+      Array.from(clipList.children).forEach((li, i) => {
+        li.classList.toggle("clip-hidden", !clipsExpanded && i >= CLIP_PREVIEW);
+      });
+      updateClipToggle();
+    });
+
+    async function sendClip() {
+      const text = clipInput.value;
+      if (!text.trim()) {
+        clipStatus.textContent = "请先输入或粘贴文本";
+        clipInput.focus();
+        return;
+      }
+      sendClipBtn.disabled = true;
+      try {
+        const res = await fetch("/api/clips", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        if (!res.ok) {
+          const t = await res.text();
+          throw new Error(t || "发送失败");
+        }
+        clipInput.value = "";
+        updateCharCount();
+        clipStatus.textContent = "已发送，其他人马上能看到";
+        setTimeout(() => (clipStatus.textContent = ""), 2200);
+        loadClips(true);
+      } catch {
+        clipStatus.textContent = "发送失败，请重试";
+      } finally {
+        sendClipBtn.disabled = false;
+      }
+    }
+
+    function updateCharCount() {
+      charCount.textContent = clipInput.value.length + " 字";
+      charCount.classList.toggle("near-limit", clipInput.value.length > 45000);
+    }
+
+    clipInput.addEventListener("input", updateCharCount);
+    sendClipBtn.addEventListener("click", sendClip);
+    clipInput.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") sendClip();
+    });
+    clearClipsBtn.addEventListener("click", async () => {
+      if (!confirm("清空全部共享文本？")) return;
+      await fetch("/api/clips", { method: "DELETE" });
+      toast("已清空共享文本");
+      loadClips(true);
+    });
+
+    refreshBtn.addEventListener("click", loadFiles);
+    loadFiles();
+    loadClips(true);
+    updateCharCount();
+    setInterval(() => loadClips(false), 2000);
+  </script>
+</body>
+</html>

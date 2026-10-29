@@ -1,0 +1,10 @@
+*.pyc
+__pycache__/
+venv/
+.venv/
+.idea/
+.DS_Store
+*.log
+uploads/*
+!uploads/.gitkeep
+clipboard.json
